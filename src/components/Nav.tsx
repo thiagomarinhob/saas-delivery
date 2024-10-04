@@ -25,7 +25,7 @@ export function Nav({ links }: NavProps) {
             className={cn(
               buttonVariants({ variant: link.variant, size: "sm" }),
               link.variant === "default" &&
-                "bg-[#0b08b2] dark:text-white dark:hover:bg-muted dark:hover:text-white",
+                "bg-slate-800 dark:text-white dark:hover:bg-muted dark:hover:text-white",
               "justify-start h-11 font-semibold text-lg gap-2"
             )}
           >
