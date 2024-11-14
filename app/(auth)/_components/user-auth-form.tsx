@@ -19,7 +19,8 @@ import * as z from 'zod';
 import GithubSignInButton from './github-auth-button';
 
 const formSchema = z.object({
-  email: z.string().email({ message: 'Enter a valid email address' })
+  email: z.string().email({ message: 'Enter a valid email address' }),
+  password: z.string()
 });
 
 type UserFormValue = z.infer<typeof formSchema>;
@@ -28,18 +29,15 @@ export default function UserAuthForm() {
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get('callbackUrl');
   const [loading, startTransition] = useTransition();
-  const defaultValues = {
-    email: 'demo@gmail.com'
-  };
   const form = useForm<UserFormValue>({
-    resolver: zodResolver(formSchema),
-    defaultValues
+    resolver: zodResolver(formSchema)
   });
 
   const onSubmit = async (data: UserFormValue) => {
     startTransition(() => {
       signIn('credentials', {
         email: data.email,
+        password: data.password,
         callbackUrl: callbackUrl ?? '/dashboard'
       });
       toast.success('Signed In Successfully!');
@@ -63,6 +61,24 @@ export default function UserAuthForm() {
                   <Input
                     type="email"
                     placeholder="Enter your email..."
+                    disabled={loading}
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="password"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Password</FormLabel>
+                <FormControl>
+                  <Input
+                    type="password"
+                    placeholder="Enter your password..."
                     disabled={loading}
                     {...field}
                   />

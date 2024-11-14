@@ -1,8 +1,27 @@
-import { NextAuthConfig } from 'next-auth';
 import CredentialProvider from 'next-auth/providers/credentials';
 import GithubProvider from 'next-auth/providers/github';
+import 'next-auth/jwt';
 
-const authConfig = {
+declare module 'next-auth/jwt' {
+  interface JWT {
+    id: string;
+    email?: string;
+    name?: string;
+  }
+}
+
+declare module 'next-auth' {
+  interface Session {
+    user: {
+      id: string;
+      name: string;
+      email: string;
+      image?: string;
+    };
+  }
+}
+
+const authOptions = {
   providers: [
     GithubProvider({
       clientId: process.env.GITHUB_ID ?? '',
@@ -11,33 +30,62 @@ const authConfig = {
     CredentialProvider({
       credentials: {
         email: {
-          type: 'email'
+          label: 'Email',
+          type: 'email',
+          placeholder: 'example@example.com'
         },
-        password: {
-          type: 'password'
-        }
+        password: { label: 'Password', type: 'password' }
       },
-      async authorize(credentials, req) {
-        const user = {
-          id: '1',
-          name: 'John',
-          email: credentials?.email as string
-        };
-        if (user) {
-          // Any object returned will be saved in `user` property of the JWT
-          return user;
-        } else {
-          // If you return null then an error will be displayed advising the user to check their details.
-          return null;
+      async authorize(credentials) {
+        const res = await fetch('http://localhost:8080/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: credentials?.email,
+            password: credentials?.password
+          })
+        });
 
-          // You can also Reject this callback with an Error thus the user will be sent to the error page with the error message as a query parameter
+        const result = await res.json();
+
+        if (res.ok && result) {
+          return {
+            token: result.access_token,
+            userId: result.user.ID,
+            email: result.user.email,
+            name: result.user.name
+          };
         }
+        return null;
       }
     })
   ],
   pages: {
-    signIn: '/' //sigin page
+    signIn: '/' // Página de login customizada
+  },
+  session: {
+    strategy: 'jwt' // Usando JWT para sessões
+  },
+  callbacks: {
+    async jwt({ token, user }: any) {
+      if (user) {
+        token.id = user.token;
+        token.userId = user.userId;
+        token.email = user.email;
+        token.name = user.name;
+      }
+      return token;
+    },
+    async session({ session, token }: any) {
+      if (token && typeof token.id === 'string') {
+        session.user.id = token.id;
+        session.user.email = token.email ?? ''; // adiciona email
+        session.user.name = token.name ?? ''; // adiciona name
+        session.user.userId = token.userId ?? '';
+      }
+      return session;
+    }
   }
-} satisfies NextAuthConfig;
+};
 
-export default authConfig;
+export default authOptions;
