@@ -189,7 +189,7 @@ export type Product = {
   name: string;
   description: string;
   created_at: string;
-  price: number;
+  price: string;
   id: number;
   category: string;
   updated_at: string;
@@ -221,7 +221,7 @@ export const fakeProducts = {
         created_at: faker.date
           .between({ from: '2022-01-01', to: '2023-12-31' })
           .toISOString(),
-        price: parseFloat(faker.commerce.price({ min: 5, max: 500, dec: 2 })),
+        price: faker.commerce.price({ min: 5, max: 500, dec: 2 }),
         photo_url: `https://api.slingacademy.com/public/sample-products/${id}.png`,
         category: faker.helpers.arrayElement(categories),
         updated_at: faker.date.recent().toISOString()

@@ -49,7 +49,7 @@ const formSchema = z.object({
     message: 'Product name must be at least 2 characters.'
   }),
   category: z.string(),
-  price: z.number(),
+  price: z.string(),
   description: z.string().min(10, {
     message: 'Description must be at least 10 characters.'
   })
@@ -65,7 +65,7 @@ export default function ProductForm({
   const defaultValues = {
     name: initialData?.name || '',
     category: initialData?.category || '',
-    price: initialData?.price || 0,
+    price: initialData?.price || '0',
     description: initialData?.description || ''
   };
 
