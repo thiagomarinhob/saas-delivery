@@ -10,9 +10,10 @@ export const columns: ColumnDef<Product>[] = [
     header: 'IMAGE',
     cell: ({ row }) => {
       return (
-        <div className="relative aspect-square">
+        <div className="relative aspect-square max-h-12">
           <Image
-            src={row.getValue('photo_url')}
+            // `https://api.slingacademy.com/public/sample-products/1.png`
+            src={`https://api.slingacademy.com/public/sample-products/1.png`}
             alt={row.getValue('name')}
             fill
             className="rounded-lg"
@@ -26,12 +27,21 @@ export const columns: ColumnDef<Product>[] = [
     header: 'NAME'
   },
   {
-    accessorKey: 'category',
+    accessorKey: 'ProductType.name',
     header: 'CATEGORY'
   },
   {
     accessorKey: 'price',
-    header: 'PRICE'
+    header: 'PRICE',
+    cell: ({ row }) => {
+      const price = parseFloat(row.getValue('price'));
+      const formattedPrice = new Intl.NumberFormat('pt-BR', {
+        style: 'currency',
+        currency: 'BRL'
+      }).format(price);
+
+      return <span>{formattedPrice}</span>;
+    }
   },
   {
     accessorKey: 'description',
