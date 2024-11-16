@@ -1,28 +1,43 @@
+'use client';
+
 import { Product } from '@/constants/data';
-import { fakeProducts } from '@/constants/mock-api';
-import { searchParamsCache } from '@/lib/searchparams';
 import { DataTable as ProductTable } from '@/components/ui/table/data-table';
 import { columns } from './product-tables/columns';
+import { useSession } from 'next-auth/react';
+import { useEffect, useState } from 'react';
 
 type ProductListingPage = {};
 
-export default async function ProductListingPage({}: ProductListingPage) {
-  // Showcasing the use of search params cache in nested RSCs
-  const page = searchParamsCache.get('page');
-  const search = searchParamsCache.get('q');
-  const pageLimit = searchParamsCache.get('limit');
-  const categories = searchParamsCache.get('categories');
+export default function ProductListingPage({}: ProductListingPage) {
+  const { data: session } = useSession();
+  const [products, setProducts] = useState<Product[]>([]);
+  const [totalProducts, setTotalProducts] = useState(0);
 
-  const filters = {
-    page,
-    limit: pageLimit,
-    ...(search && { search }),
-    ...(categories && { categories: categories })
-  };
+  useEffect(() => {
+    const fetchProducts = async () => {
+      if (!session) return; // Aguarda a sessão estar disponível
+      try {
+        const response = await fetch(
+          'https://api-golang-1.onrender.com/products',
+          {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${session?.user.id}`,
+              'Establishment-ID': '6f2c6de9-0fad-4eee-859c-cbb41427db0e'
+            }
+          }
+        );
+        const data = await response.json();
+        setProducts(data.products || []);
+        setTotalProducts(data.total || 0);
+      } catch (error) {
+        console.error('Erro ao buscar produtos:', error);
+      }
+    };
 
-  const data = await fakeProducts.getProducts(filters);
-  const totalProducts = data.total_products;
-  const products: Product[] = data.products;
+    fetchProducts();
+  }, [session]);
 
   return (
     <ProductTable

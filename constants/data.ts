@@ -115,7 +115,7 @@ export type Product = {
   name: string;
   description: string;
   created_at: string;
-  price: number;
+  price: string;
   id: number;
   category: string;
   updated_at: string;

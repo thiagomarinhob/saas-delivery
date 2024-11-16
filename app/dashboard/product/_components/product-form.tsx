@@ -1,5 +1,6 @@
 'use client';
 
+import { useSession } from 'next-auth/react';
 import { FileUploader } from '@/components/file-uploader';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -24,6 +25,8 @@ import { Product } from '@/constants/mock-api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
+import { toast } from 'sonner';
+import { useEffect, useState } from 'react';
 
 const MAX_FILE_SIZE = 5000000;
 const ACCEPTED_IMAGE_TYPES = [
@@ -62,6 +65,7 @@ export default function ProductForm({
   initialData: Product | null;
   pageTitle: string;
 }) {
+  const { data: session } = useSession();
   const defaultValues = {
     name: initialData?.name || '',
     category: initialData?.category || '',
@@ -69,13 +73,77 @@ export default function ProductForm({
     description: initialData?.description || ''
   };
 
+  const [categories, setCategories] = useState([]);
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     values: defaultValues
   });
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
-    console.log(values);
+  useEffect(() => {
+    const fetchCategories = async () => {
+      if (!session) return;
+      try {
+        const response = await fetch(
+          'https://api-golang-1.onrender.com/product-types',
+          {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${session?.user.id}`,
+              'Establishment-ID': '6f2c6de9-0fad-4eee-859c-cbb41427db0e'
+            }
+          }
+        );
+        const data = await response.json();
+        setCategories(data || []);
+      } catch (error) {
+        console.error('Erro ao buscar produtos:', error);
+      }
+    };
+
+    fetchCategories();
+  }, [session]);
+
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    try {
+      const productData = {
+        name: values.name,
+        product_type_id: '9f8c9838-f0a6-4c8c-a2d3-0cb62459a66d',
+        price: values.price,
+        description: values.description
+      };
+
+      const response = await fetch(
+        'https://api-golang-1.onrender.com/products',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${session?.user.id}`,
+            'Establishment-ID': '6f2c6de9-0fad-4eee-859c-cbb41427db0e'
+          },
+          body: JSON.stringify(productData)
+        }
+      );
+
+      if (response) {
+        toast.success('Produto criado com sucesso!');
+        form.reset({
+          name: '',
+          category: '',
+          price: '0',
+          description: '',
+          image: null // ou [] dependendo do tipo esperado
+        });
+      } else {
+        toast.error('Erro ao criar o produto.');
+      }
+      console.log('🚀 ~ onSubmit ~ response:', response);
+    } catch (error) {
+      console.error('Error:', error);
+      toast.error('Ocorreu um erro ao criar o produto.');
+    }
   }
 
   return (
@@ -144,13 +212,11 @@ export default function ProductForm({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="beauty">Beauty Products</SelectItem>
-                        <SelectItem value="electronics">Electronics</SelectItem>
-                        <SelectItem value="clothing">Clothing</SelectItem>
-                        <SelectItem value="home">Home & Garden</SelectItem>
-                        <SelectItem value="sports">
-                          Sports & Outdoors
-                        </SelectItem>
+                        {categories.map((item: any) => (
+                          <SelectItem key={item.ID} value={item.ID}>
+                            {item.name}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                     <FormMessage />
