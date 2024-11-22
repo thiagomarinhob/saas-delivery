@@ -1,68 +1,118 @@
-"use client"
+"use client";
 
-import { useState, useMemo } from 'react'
-import { Plus, Check, X, Eye, Search } from 'lucide-react'
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog"
+import { useState, useMemo } from "react";
+import { Plus, Check, X, Eye, Search } from 'lucide-react';
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { OrderDetailsDialog } from "./order-details-dialog";
+
+type OrderItem = {
+  id: string;
+  name: string;
+  quantity: number;
+  price: number;
+  notes?: string;
+};
 
 type Pedido = {
-  id: number
-  mesa: string
-  item: string
-  status: 'pendente' | 'concluído' | 'cancelado'
-  detalhes?: string
-}
+  id: number;
+  mesa: string;
+  itens: OrderItem[];
+  status: "pendente" | "concluído" | "cancelado";
+};
 
-export default function CardList(){
+export default function CardList() {
   const [pedidos, setPedidos] = useState<Pedido[]>([
-    { id: 1, mesa: '1', item: 'Pizza Margherita', status: 'pendente', detalhes: 'Sem cebola' },
-    { id: 2, mesa: '2', item: 'Hambúrguer', status: 'pendente', detalhes: 'Ponto médio' },
-    { id: 3, mesa: '1', item: 'Salada Caesar', status: 'concluído', detalhes: 'Sem croutons' },
-    { id: 4, mesa: '3', item: 'Spaghetti Carbonara', status: 'pendente', detalhes: 'Extra bacon' },
-  ])
-  const [novaMesa, setNovaMesa] = useState('')
-  const [novoItem, setNovoItem] = useState('')
-  const [filtroMesa, setFiltroMesa] = useState('')
+    {
+      id: 1,
+      mesa: "1",
+      itens: [
+        { id: "1", name: "Pizza Margherita", quantity: 1, price: 25.00, notes: "Sem cebola" }
+      ],
+      status: "pendente",
+    },
+    {
+      id: 2,
+      mesa: "2",
+      itens: [
+        { id: "2", name: "Hambúrguer", quantity: 1, price: 15.00, notes: "Ponto médio" }
+      ],
+      status: "pendente",
+    },
+    {
+      id: 3,
+      mesa: "1",
+      itens: [
+        { id: "3", name: "Salada Caesar", quantity: 1, price: 12.00, notes: "Sem croutons" }
+      ],
+      status: "concluído",
+    },
+    {
+      id: 4,
+      mesa: "3",
+      itens: [
+        { id: "4", name: "Spaghetti Carbonara", quantity: 1, price: 18.00, notes: "Extra bacon" }
+      ],
+      status: "pendente",
+    },
+  ]);
+  const [novaMesa, setNovaMesa] = useState("");
+  const [novoItem, setNovoItem] = useState("");
+  const [filtroMesa, setFiltroMesa] = useState("");
+  const [openDialogId, setOpenDialogId] = useState<number | null>(null);
 
   const adicionarPedido = () => {
     if (novaMesa && novoItem) {
+      const itensSeparados = novoItem
+        .split(",")
+        .map((item) => item.trim())
+        .filter((item) => item !== "");
       const novoPedido: Pedido = {
         id: pedidos.length + 1,
         mesa: novaMesa,
-        item: novoItem,
-        status: 'pendente'
-      }
-      setPedidos([...pedidos, novoPedido])
-      setNovaMesa('')
-      setNovoItem('')
+        itens: itensSeparados.map((item, index) => ({
+          id: `${pedidos.length + 1}-${index + 1}`,
+          name: item,
+          quantity: 1,
+          price: 0, 
+        })),
+        status: "pendente",
+      };
+      setPedidos([...pedidos, novoPedido]);
+      setNovaMesa("");
+      setNovoItem("");
     }
-  }
+  };
 
-  const atualizarStatus = (id: number, novoStatus: 'concluído' | 'cancelado') => {
+  const atualizarStatus = (
+    id: number,
+    novoStatus: "concluído" | "cancelado"
+  ) => {
+    setPedidos(
+      pedidos.map((pedido) =>
+        pedido.id === id ? { ...pedido, status: novoStatus } : pedido
+      )
+    );
+  };
+
+  const handleSaveChanges = (pedidoId: number, newItems: OrderItem[]) => {
     setPedidos(pedidos.map(pedido => 
-      pedido.id === id ? { ...pedido, status: novoStatus } : pedido
-    ))
-  }
+      pedido.id === pedidoId ? { ...pedido, itens: newItems } : pedido
+    ));
+  };
 
   const pedidosFiltrados = useMemo(() => {
-    return pedidos.filter(pedido => 
+    return pedidos.filter((pedido) =>
       pedido.mesa.toLowerCase().includes(filtroMesa.toLowerCase())
-    )
-  }, [pedidos, filtroMesa])
+    );
+  }, [pedidos, filtroMesa]);
 
-  return(
+  return (
     <div className="container mx-auto p-4">
       <h1 className="text-2xl font-bold mb-4">Gerenciador de Pedidos</h1>
-      
+
       <Card className="mb-6">
         <CardHeader>
           <CardTitle>Novo Pedido</CardTitle>
@@ -76,7 +126,7 @@ export default function CardList(){
               className="w-24"
             />
             <Input
-              placeholder="Item"
+              placeholder="Itens (separados por vírgula)"
               value={novoItem}
               onChange={(e) => setNovoItem(e.target.value)}
               className="flex-grow"
@@ -105,47 +155,67 @@ export default function CardList(){
               <CardTitle className="text-lg">Mesa {pedido.mesa}</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="mb-2 text-sm truncate">{pedido.item}</p>
+              <ul className="mb-2 text-sm">
+                {pedido.itens.map((item) => (
+                  <li key={item.id}>- {item.name} (x{item.quantity})</li>
+                ))}
+              </ul>
               <div className="flex justify-between items-center mb-2">
                 <Badge
-                  variant={pedido.status === 'pendente' ? 'outline' : 
-                           pedido.status === 'concluído' ? 'default' : 'destructive'}
+                  variant={
+                    pedido.status === "pendente"
+                      ? "secondary"
+                      : pedido.status === "concluído"
+                      ? "default"
+                      : "destructive"
+                  }
                 >
                   {pedido.status}
                 </Badge>
-                <Dialog>
-                  <DialogTrigger asChild>
-                    <Button variant="outline" size="sm">
-                      <Eye className="mr-2 h-4 w-4" /> Detalhes
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>Detalhes do Pedido #{pedido.id}</DialogTitle>
-                    </DialogHeader>
-                    <div className="mt-4">
-                      <p><strong>Mesa:</strong> {pedido.mesa}</p>
-                      <p><strong>Item:</strong> {pedido.item}</p>
-                      <p><strong>Status:</strong> {pedido.status}</p>
-                      <p><strong>Detalhes:</strong> {pedido.detalhes || 'Nenhum detalhe adicional'}</p>
-                    </div>
-                  </DialogContent>
-                </Dialog>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => setOpenDialogId(pedido.id)}
+                >
+                  <Eye className="mr-2 h-4 w-4" /> Detalhes
+                </Button>
               </div>
-              {pedido.status === 'pendente' && (
+              {pedido.status === "pendente" && (
                 <div className="flex justify-between space-x-2">
-                  <Button size="sm" className="flex-1" onClick={() => atualizarStatus(pedido.id, 'concluído')}>
-                    <Check className="mr-2 h-4 w-4" /> Concluir
-                  </Button>
-                  <Button size="sm" variant="destructive" className="flex-1" onClick={() => atualizarStatus(pedido.id, 'cancelado')}>
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    className="flex-1"
+                    onClick={() => atualizarStatus(pedido.id, "cancelado")}
+                  >
                     <X className="mr-2 h-4 w-4" /> Cancelar
+                  </Button>
+                  <Button
+                    size="sm"
+                    className="flex-1"
+                    onClick={() => atualizarStatus(pedido.id, "concluído")}
+                  >
+                    <Check className="mr-2 h-4 w-4" /> Concluir
                   </Button>
                 </div>
               )}
             </CardContent>
+            <OrderDetailsDialog
+              open={openDialogId === pedido.id}
+              onOpenChange={(open) => {
+                if (!open) setOpenDialogId(null);
+              }}
+              orderNumber={pedido.id}
+              tableNumber={parseInt(pedido.mesa)}
+              status={pedido.status}
+              items={pedido.itens}
+              onDeleteItem={() => {}} 
+              onSaveChanges={(newItems) => handleSaveChanges(pedido.id, newItems)}
+            />
           </Card>
         ))}
       </div>
     </div>
-  )
+  );
 }
+
